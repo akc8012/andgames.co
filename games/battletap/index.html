@@ -1,0 +1,1406 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+
+	<title>Battle Tap</title>
+
+	<script src="sprite.js"></script>
+
+	<style>
+	canvas {
+		display: block;
+		position: absolute;
+		margin: auto;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
+	</style>
+</head>
+<body>
+<script>
+
+var
+canvas,
+ctx,
+width,
+height,
+scaleFactor,
+frames,
+tutNum = 0,
+paused = false,
+currentstate,
+states =
+{
+	Splash: 0, Game: 1, Score: 2
+},
+floorY,
+score,
+best = 0,
+drawNew,
+defeated,
+health,
+cloudsPos = 0,
+startButt = 
+{
+	x: 0,
+	y: 0,
+	width: 0,
+	height: 0,
+	init: function(x, y, width, height)
+	{
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	},
+	draw: function(ctx)
+	{
+		ctx.save();
+		ctx.translate(this.x, this.y);
+		s_startButt.draw(ctx, 0, 0);
+
+		ctx.restore();
+	}
+},
+restartButt = 
+{
+	x: 0,
+	y: 0,
+	width: 0,
+	height: 0,
+	init: function(x, y, width, height)
+	{
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	},
+	draw: function(ctx)
+	{
+		ctx.save();
+		ctx.translate(this.x, this.y);
+		s_retryButt.draw(ctx, 0, 0);
+
+		ctx.restore();
+	}
+},
+
+bar = 
+{
+	x: 0,
+	y: 0,
+	scaleX: 1,
+	gettingHit: false,
+	startingScale: 1,
+	alpha: 1,
+
+	init: function(x, y)
+	{
+		this.x = x;
+		this.y = y;
+
+		this.scaleX = 1;
+		this.alpha = 1;
+	},
+
+	getHit: function()
+	{
+		health--;
+		this.startingScale = this.scaleX;
+		this.gettingHit = true;
+	},
+
+	update: function()
+	{
+		if (this.gettingHit)
+		{
+			this.scaleX -= 0.02;
+
+			if (this.scaleX <= this.startingScale-0.33)
+			{
+				this.scaleX = this.startingScale-0.33;
+				this.gettingHit = false;
+
+				if (this.scaleX <= 0.1)
+					this.alpha = 0;
+			}
+		}
+	},
+
+	draw: function(ctx)
+	{
+		ctx.save();
+		ctx.translate(this.x, this.y);
+		ctx.scale(this.scaleX, 1);
+		ctx.globalAlpha = this.alpha;
+		s_barFill.draw(ctx, 0, 0);
+
+		ctx.restore();
+	}
+},
+
+tapGlow = 
+{
+	x: 0,
+	y: 0,
+	alpha: 0,
+	startTap: false,
+
+	tap: function()
+	{
+		this.startTap = true;
+	},
+
+	update: function()
+	{
+		if (this.startTap)
+		{
+			this.alpha += 0.15;
+
+			if (this.alpha >= 1)
+			{
+				this.alpha = 1;
+				this.startTap = false;
+			}
+		}
+
+		if (!this.startTap && this.alpha > 0)
+		{
+			this.alpha -= 0.15;
+		}
+
+		if (this.alpha <= 0)
+			this.alpha = 0;
+	},
+
+	draw: function(ctx)
+	{
+		ctx.save();
+		ctx.globalAlpha = this.alpha;
+		ctx.scale(width/s_tapGlow.width, height/s_tapGlow.height);
+		s_tapGlow.draw(ctx, 0, 0);
+
+		ctx.restore();
+	}
+},
+
+player =
+{
+	x: 0,
+	y: 0,
+	vx: 0,
+	vy: 0,
+	gravity: 0.25,
+	rotation: 0,
+	scaleX: 1,
+	scaleY: 1,
+	alpha: 1,
+	states:
+	{
+		Idle: 0, Walking: 1, LowJump: 2, HighJump: 3, DoneJump: 4, DodgeWait: 5
+	},
+	currentstate: 0,
+	tapStamp: 0,
+	startX: 0,
+	startY: 0,
+	grounded: true,
+	tapAllowance: 10,
+	frame: 0,
+	n: 0,
+	walkAnim: [0, 2, 0, 1],
+	failed: false,			// for animation purposes
+	didSpin: false,			// for animation purposes
+
+	jump: function(jumpHeight)
+	{
+		this.vy = -jumpHeight;
+	},
+
+	setPos: function(x, y)
+	{
+		this.x = x;
+		this.y = y;
+
+		this.startX = this.x;
+		this.startY = this.y;
+	},
+
+	move: function(speed)
+	{
+		this.vx = speed;
+		this.currentstate = this.states.Walking;
+	},
+
+	update: function()
+	{
+		switch (this.currentstate)
+		{
+			case this.states.Idle:
+				this.idle();
+				break;
+			case this.states.Walking:
+				this.walking();
+				break;
+			case this.states.LowJump:
+				this.lowJump();
+				break;
+			case this.states.HighJump:
+				this.highJump();
+				break;
+			case this.states.DoneJump:
+				this.doneJump();
+				break;
+		}
+
+		this.vy += this.gravity*scaleFactor;
+		if (this.y+this.vy >= floorY-s_player[0].height + (this.rotation == 0 ? -1 : s_player[0].width/2))
+		{
+			this.vy = 0;
+			this.y = floorY-s_player[0].height + (this.rotation == 0 ? 0 : s_player[0].width/2);
+			this.grounded = true;
+		} else this.grounded = false;
+
+		this.x += this.vx;
+		this.y += this.vy;
+	},
+
+	idle: function()
+	{
+		
+	},
+
+	// walk toward the enemy, then do low jump
+	walking: function()
+	{
+		this.frame += frames % 6 == 0 ? 1 : 0;		// increment frame every n (animationSpeed) frames
+		this.frame %= this.walkAnim.length;			// clamp the frame inside the animation array
+		this.n = this.walkAnim[this.frame];
+
+		if (this.x >= enemy.x-80*scaleFactor)
+			this.vx -= 0.3*scaleFactor;			// almost at the enemy, start to slow down
+
+		if (this.vx <= 1)						// we've (pretty much) reached the enemy, but not full stopped
+		{
+			this.jump(6.2*scaleFactor);
+			this.currentstate = this.states.LowJump;
+		}
+	},
+
+	// the jump from ground to enemy, check for tapStamp when we touch the enemies head
+	lowJump: function()
+	{
+		this.n = this.vy < 0 ? 3 : 4;
+		this.vx += 0.04*scaleFactor;								// start speeding up a teeny bit
+
+		if (this.x >= enemy.x-5*scaleFactor && this.y+s_player[0].height > enemy.y-8*scaleFactor)	// x is past enemy, feet 40px higher than enemy head
+		{
+			this.vx = 0;	// stop horizontal movement
+			this.vy = 1*scaleFactor;	// move down 1px each frame
+
+			if (this.checkTutNum(0))								// do this to make the tut screen show up
+				return;
+			else
+				tapIcon.showTap(this.x-85*scaleFactor, this.y-65*scaleFactor);
+
+			if (this.checkTapStamp())								// here we've tap in time
+			{
+				this.jump(10*scaleFactor);
+				this.x = enemy.x;									// line up horiz with enemy, I dunno it just looks nice
+				this.y = enemy.y - s_player[0].height;				// put us ABOVE enemy (this is important, because high jump
+				enemy.health--;										// finishes when we're BELOW the enemy
+				enemy.n = 5;
+				this.failed = false;
+				this.informSun(true);
+				this.currentstate = this.states.HighJump;
+			}
+			else 													// didn't tap correctly
+			{
+				if (this.y+s_player[0].height > enemy.y+10*scaleFactor ||		// feet 10px lower than enemy head (fail point))
+					this.checkTooEarly())
+				{
+					this.jump(3*scaleFactor);
+					this.vx = -3*scaleFactor;						// start to fall back to the left, preparing for done jump
+					this.scaleX = -1;
+					this.failed = true;
+					this.informSun(false);
+					enemy.n = 3;
+					this.currentstate = this.states.DoneJump;
+				}
+				else 												// haven't reached fail point yet, so let us try again!
+				{
+					this.resetTapStamp();
+				}
+			}
+		}
+		else if (this.x < enemy.x-25*scaleFactor)
+		{
+			this.setTooEarly();
+		}
+	},
+
+	// starting with our first bonk on the enemy, then check for pinicle tap, then check for secondary bonk, then always fall off
+	highJump: function()
+	{
+		if (!this.didSpin)
+		{
+			this.n = this.vy < 0 ? 3 : 4;
+			this.rotation = 0;
+		}
+		else
+		{
+			this.n = 6;
+			this.rotation += 30;
+
+			if (this.rotation >= 360)
+				this.didSpin = false;
+		}
+
+		if (this.vy <= 1 && this.vy >= -1)		// at the pinicle of our high jump
+		{
+			enemy.n = 0;
+			if (this.checkTutNum(3))
+				return;
+
+			if (!this.didSpin)
+			{
+				if (this.checkTapStamp(true))	// this is only here to add to score if we've tapped in time with the call
+				{
+					this.didSpin = true;
+					this.informSun(true);
+				}
+				else if (!this.checkTooEarly())
+					this.resetTapStamp();
+			}
+		}
+		if (this.vy < -5)						// rising up to pinicle, but still too early
+		{
+			this.setTooEarly();
+		}
+		if (this.vy > 0 && this.vy < 1)			// right after pinicle jump, but only for one frame
+		{										// we do this just in case we failed pinicle jump (too early)
+			this.resetTapStamp();				// we'll still be able to attack the enemy
+		}
+
+		if (this.y+s_player[0].height > enemy.y-8*scaleFactor && this.vy > 0)		// our feet are lower than enemy head
+		{
+			this.vy = 1;	// move down 1px each frame
+
+			if (this.checkTutNum(1))
+				return;
+			else
+				tapIcon.showTap(this.x-85*scaleFactor, this.y-65*scaleFactor);
+
+			if (this.checkTapStamp())
+			{
+				this.jump(7*scaleFactor);
+				enemy.health--;
+				enemy.n = 5;
+				this.vx = -5.3*scaleFactor;				// start to fall back to the left, preparing for done jump
+				this.failed = false;
+				this.scaleX = -1;
+				this.informSun(true);
+				this.currentstate = this.states.DoneJump;
+			}
+			else 													// didn't tap correctly
+			{
+				if (this.y+s_player[0].height > enemy.y+10*scaleFactor ||		// feet 10px lower than enemy head (fail point))
+					this.checkTooEarly())
+				{
+					this.jump(3*scaleFactor);
+					this.vx = -3*scaleFactor;						// start to fall back to the left, preparing for done jump
+					enemy.n = 3;
+					this.failed = true;
+					this.scaleX = -1;
+					this.informSun(false);
+					this.currentstate = this.states.DoneJump;
+				}
+				else 												// haven't reached fail point yet, so let us try again!
+				{
+					this.resetTapStamp();
+				}
+			}
+		}
+		if (this.y+s_player[0].height < enemy.y-70*scaleFactor && this.vy > 0)
+		{
+			this.setTooEarly();
+		}
+		
+	},
+
+	// all ending jumps lead here, move to start position, switch state to dodge wait
+	doneJump: function()
+	{
+		if (!this.grounded)
+		{
+			if (!this.failed)
+				this.n = this.vy < 0 ? 3 : 4;
+			else
+				this.n = 5;
+
+			if (this.vx < 0)
+				this.vx += 0.1*scaleFactor;
+			else
+				this.vx = -1*scaleFactor;
+		}
+
+		if (this.grounded)
+		{
+			enemy.n = 0;
+			this.frame += frames % 6 == 0 ? 1 : 0;		// increment frame every n (animationSpeed) frames
+			this.frame %= this.walkAnim.length;			// clamp the frame inside the animation array
+			this.n = this.walkAnim[this.frame];
+
+			if (this.x >= this.startX+20*scaleFactor)
+				this.vx -= 0.1*scaleFactor;					// if we're not at are starting point yet, speed up a bit
+			else if (this.x < this.startX+20*scaleFactor)
+				this.vx += 0.35*scaleFactor;				// almost at start point, begin to slow down
+			
+			if (this.x <= this.startX)						// at the starting point
+			{
+				this.vx = 0;
+				this.x = this.startX;
+				this.n = 0;
+				this.scaleX = 1;
+				this.currentstate = this.states.DodgeWait;
+
+				if (enemy.health <= 0)
+				{
+					enemy.rotation = 90;
+					enemy.n = 7;
+					enemy.y = enemy.startY - s_player[0].height/2;
+					enemy.currentstate = enemy.states.Dead;
+				}
+				else
+					enemy.move(4*scaleFactor);				// if the enemy isn't dead, start his nonsense
+			}
+
+			if (this.vx > 0)								// if we start sliding off to the right (WHICH SHOULD NOT BE HAPPENING,
+				this.vx = -1*scaleFactor;					// make sure we're back on track to the left
+		}
+	},
+
+	// called to check at critical moments if the tap frame is close enough to be correct
+	checkTapStamp: function()
+	{
+		tapped = (this.tapStamp > frames-this.tapAllowance);	// did we tap within 10 frames of the call?
+		return tapped;
+	},
+
+	// this allows another tap to be accepted
+	resetTapStamp: function()
+	{
+		this.tapStamp = 0;
+	},
+
+	setTooEarly: function()
+	{
+		if (this.tapStamp > 0)			// if we did actually tap when this was called
+		{
+			this.tapStamp = -1;
+		}
+	},
+
+	checkTooEarly: function()
+	{
+		return this.tapStamp == -1;
+	},
+
+	informSun: function(tapped)
+	{
+		if (tapped)
+		{
+			score++;
+			sun.setState(sun.states.Succeed);
+		}
+		else
+		{
+			var tooEarly = this.tapStamp == 0 ? false : true;		// tapStamp 0 means we didn't tap, so we're too late,
+			sun.setState(sun.states.Fail, tooEarly);				// tapStamp > 0 means we DID tap, just too early
+		}
+
+		this.resetTapStamp();
+	},
+
+	// increment a counter at each major event to keep track, this way we know when to show tutorial screens
+	checkTutNum: function(n)
+	{
+		if (tutNum == n)	// check to make sure we show the right screen
+		{
+			tutNum++;
+			paused = true;	// pause the game (just stops the main loop), but we can still accept taps
+			return true;
+		}
+
+		return false;
+	},
+
+	draw: function(ctx)
+	{
+		// we're transforming EVERYTHING on the canvas,
+		// so save, transform this, then restore
+		ctx.save();
+
+		ctx.translate(this.x+s_player[0].width/2, this.y+s_player[0].height/2);	// translate to origin relative to current pos
+		ctx.rotate(this.rotation*Math.PI/180);								// do rotation, at origin
+		ctx.scale(this.scaleX, this.scaleY);
+		ctx.translate(-s_player[0].width/2, -s_player[0].height/2);				// move back to start pos, having completed rotation
+
+		ctx.globalAlpha = this.alpha;
+
+		s_player[this.n].draw(ctx, 0, 0);
+		ctx.restore();
+	}
+},
+
+enemy =
+{
+	x: 0,
+	y: 0,
+	vx: 0,
+	vy: 0,
+	gravity: 0.25,
+	rotation: 0,
+	scaleX: -1,
+	scaleY: 1,
+	alpha: 1,
+	states:
+	{
+		Idle: 0, Walking: 1, JumpFreeze: 2, AirSpin: 3, Attack: 4, DoneAttack: 5, Dead: 6, ComeBack: 7
+	},
+	currentstate: 0,
+	startX: 0,
+	startY: 0,
+	grounded: true,
+	health: 4,
+	frame: 0,
+	n: 0,
+	walkAnim: [0, 2, 0, 1],
+	failed: true,	// used for animation garbage
+
+	jump: function(jumpHeight)
+	{
+		this.vy = -jumpHeight;
+	},
+
+	setPos: function(x, y)
+	{
+		this.x = x;
+		this.y = y;
+
+		this.startX = this.x;
+		this.startY = this.y;
+	},
+
+	move: function(speed)
+	{
+		this.vx = -speed;
+		this.currentstate = this.states.Walking;
+	},
+
+	update: function()
+	{
+		switch (this.currentstate)
+		{
+			case this.states.Idle:
+				this.idle();
+				break;
+			case this.states.Walking:
+				this.walking();
+				break;
+			case this.states.JumpFreeze:
+				this.jumpFreeze();
+				break;
+			case this.states.AirSpin:
+				this.airSpin();
+				break;
+			case this.states.Attack:
+				this.attack();
+				break;
+			case this.states.DoneAttack:
+				this.doneAttack();
+				break;
+			case this.states.Dead:
+				this.dead();
+				break;
+			case this.states.ComeBack:
+				this.comeBack();
+				break;
+		}
+
+		this.vy += this.gravity*scaleFactor;
+		if (this.y+this.vy >= floorY-s_enemy[0].height + (this.rotation != 90 ? -1 : s_enemy[0].width/2))
+		{
+			this.vy = 0;
+			this.y = floorY-s_enemy[0].height + (this.rotation != 90 ? 0 : s_enemy[0].width/2);
+			this.grounded = true;
+		} else this.grounded = false;
+
+		this.x += this.vx;
+		this.y += this.vy;
+	},
+
+	idle: function()
+	{
+		
+	},
+
+	// walk toward the player, slow down at a certain point, then start jump
+	walking: function()
+	{
+		this.frame += frames % 6 == 0 ? 1 : 0;		// increment frame every n (animationSpeed) frames
+		this.frame %= this.walkAnim.length;			// clamp the frame inside the animation array
+		this.n = this.walkAnim[this.frame];
+
+		if (this.x <= player.x+115*scaleFactor)		// once we reached a specified point in front of player
+			this.vx += 0.3*scaleFactor;				// start to slow down
+
+		if (this.vx > -1)							// slowed, but not full stop
+		{
+			this.jump(7.5*scaleFactor);
+			this.currentstate = this.states.JumpFreeze;
+		}
+	},
+
+	// jump is called before, all we do here is speed up a bit, get to pinicle of our jump, then start air spin
+	jumpFreeze: function()
+	{
+		this.n = this.vy < 0 ? 3 : 4;
+		this.vx -= 0.04*scaleFactor;
+
+		if (this.vy <= 0.5 && this.vy >= -0.5)		// at the pinicle of jump
+		{
+			this.vx = 0;
+			this.n = 6;
+			this.currentstate = this.states.AirSpin;
+		}
+	},
+
+	// freeze in the air, rotate around, do some fake randomness, and at the end start atteck
+	airSpin: function()
+	{
+		this.vy = -this.gravity;				// stop in mid-air like some kind of wizard
+		this.rotation -= 14;
+		this.rotation %= 360;
+
+		if (frames % 3 == 0 && 												// pseudo-random, check only when framenum is divisible by 3
+			Math.abs(this.rotation) > 320 && Math.abs(this.rotation) < 330)	// do at least 1 "almost" complete spin (between 320 & 330)
+		{
+			this.vx = -2.3*scaleFactor;		// start to speed towards player, ahhhhhh
+			this.currentstate = this.states.Attack;
+		}
+	},
+
+	attack: function()
+	{
+		this.n = 4;
+
+		if (this.y+s_enemy[0].height > player.y-8*scaleFactor)
+		{
+			this.x = player.x+9;
+			this.vy = 1*scaleFactor;
+
+			if (player.checkTutNum(2))
+				return;
+			else
+				tapIcon.showTap(player.x+30*scaleFactor, player.y-65*scaleFactor);
+
+			if (player.checkTapStamp())
+			{
+				this.jump(3*scaleFactor);
+				this.vx = 3*scaleFactor;		// we failed, so start your slow walk of shame back to your spot
+				this.failed = true;
+				this.rotation = 0;
+				player.n = 3;
+				player.informSun(true);
+				this.scaleX = 1;
+				this.currentstate = this.states.DoneAttack;
+			}
+			else 													// didn't tap correctly
+			{
+				if (this.y+s_enemy[0].height > player.y+10*scaleFactor ||		// (fail point)
+					player.checkTooEarly())
+				{
+					this.jump(7*scaleFactor);
+					this.vx = 5.3*scaleFactor;		// we succeeded, so speed right back to the start
+					this.failed = false;
+					this.rotation = 0;
+					player.n = 5;
+					player.informSun(false);
+					bar.getHit();
+					this.scaleX = 1;
+					this.currentstate = this.states.DoneAttack;
+
+					if (health <= 0)
+					{
+						player.n = 7;
+						player.rotation = -90;
+						player.y = player.startY - s_enemy[0].height/2;
+					}
+				}
+				else 												// haven't reached fail point yet, so let us try again!
+				{
+					player.resetTapStamp();
+				}
+			}
+		}
+		else if (this.x > player.x+20*scaleFactor)
+		{
+			player.setTooEarly();
+		}
+	},
+
+	doneAttack: function()
+	{
+		if (!this.grounded)
+		{
+			if (!this.failed)
+				this.n = this.vy < 0 ? 3 : 4;
+			else
+				this.n = 5;
+
+			if (this.vx > 0)
+				this.vx += -0.1*scaleFactor;	// start slowing down to our landing
+			else
+				this.vx = 1*scaleFactor;		// speed up a tad so we're not a snail
+		}
+
+		if (this.grounded)
+		{
+			this.frame += frames % 6 == 0 ? 1 : 0;		// increment frame every n (animationSpeed) frames
+			this.frame %= this.walkAnim.length;			// clamp the frame inside the animation array
+			this.n = this.walkAnim[this.frame];
+
+			if (health > 0)
+				player.n = 0;
+
+			if (this.x <= this.startX-20*scaleFactor)		// at a certain point near our start
+				this.vx += 0.1*scaleFactor;					// start to speed up, then...
+			else if (this.x > this.startX-20*scaleFactor)
+				this.vx -= 0.35*scaleFactor;				// start to slow back down
+			
+			if (this.x >= this.startX)
+			{
+				this.vx = 0;
+				this.x = this.startX;
+				this.scaleX = -1;
+				this.n = 0;
+				this.currentstate = this.states.Idle;
+
+				if (health <= 0)
+					getDead();								// if player health is gone, end the game (score state)
+				else
+					player.move(4*scaleFactor);
+			}
+
+			if (this.vx < 0)								// catch case, make sure we don't fly off screen
+				this.vx = 1*scaleFactor;
+		}
+	},
+
+	// fade away, then jump off stage, ready to make our grand reapearence
+	dead: function()
+	{
+		this.alpha -= 0.03;			// start to faaaade awwwwwaaaaayyyyy
+
+		if (this.alpha <= 0)		// we've been faded :'(
+		{
+			this.x = width + s_enemy[0].width;	// jump offstage
+			this.rotation = 0;
+			this.alpha = 1;
+			this.vx = -4*scaleFactor;			// begin to move right back on!
+			defeated++;
+			this.currentstate = this.states.ComeBack;
+		}
+	},
+
+	// slow down into place, then start player stuff once we reach destination
+	comeBack: function()
+	{
+		this.frame += frames % 6 == 0 ? 1 : 0;		// increment frame every n (animationSpeed) frames
+		this.frame %= this.walkAnim.length;			// clamp the frame inside the animation array
+		this.n = this.walkAnim[this.frame];
+		this.vx += 0.065*scaleFactor;			// slow down a teeny tiny bit into place
+
+		if (this.x < this.startX-this.vx)
+		{
+			this.vx = 0;
+			this.x = this.startX;
+			this.health = 4;
+			this.n = 0;
+			this.currentstate = this.states.Idle;
+			player.move(4*scaleFactor);			// start the player stuff now that we're back
+		}
+
+		if (this.vx > 1)						// catch if we go to slow and start going all crazy
+			this.vx = -2*scaleFactor;
+	},
+
+	draw: function(ctx)
+	{
+		// we're transforming EVERYTHING on the canvas,
+		// so save, transform this, then restore
+		ctx.save();
+
+		ctx.translate(this.x+s_enemy[0].width/2, this.y+s_enemy[0].height/2);	// translate to origin relative to current pos
+  		ctx.rotate(this.rotation*Math.PI/180);								// do rotation, at origin
+		ctx.scale(this.scaleX, this.scaleY);
+		ctx.translate(-s_enemy[0].width/2, -s_enemy[0].height/2);				// move back to start pos, having completed rotation
+
+		ctx.globalAlpha = this.alpha;
+
+		s_enemy[this.n].draw(ctx, 0, 0);
+		ctx.restore();
+	}
+},
+
+sun = 
+{
+	x: 0,
+	y: 0,
+	vx: 0,
+	vy: 0,
+	rotation: 0,
+	scaleX: 1,
+	scaleY: 1,
+	alpha: 1,
+	states:
+	{
+		Idle: 0, Succeed: 1, Fail: 2
+	},
+	currentstate: 0,
+	countdown: 0,
+	tooEarly: true,
+	failBg:
+	{
+		x: 0, y: 0, scaleX: 1, scaleY: 1, alpha: 0
+	},
+	succeedBg:
+	{
+		x: 0, y: 0, scaleX: 0, scaleY: 0, alpha: 1
+	},
+	bubble:
+	{
+		x: 0, y: 0, scaleX: 0, scaleY: 0, alpha: 1
+	},
+
+	setPos: function(x, y)
+	{
+		this.x = x;
+		this.y = y;
+
+		this.succeedBg.x = (-s_succeedRays.width/2) + (s_sun[0].width/2) - 50*scaleFactor;
+		this.succeedBg.y = (-s_succeedRays.height/2) + (s_sun[0].height/2) + 20*scaleFactor;
+		this.bubble.x = 25*scaleFactor;
+		this.bubble.y = 168*scaleFactor;
+	},
+
+	n: 0,
+	bubbleFrame: 0,
+
+	// this is called whenever we checkTapStamp, initialize timer, change state,
+	// and set tooEarly (if we fail)
+	setState: function(newState, tooEarly)
+	{
+		this.reset();						// if we're in the middle of another state, make sure we can start a new one
+		this.countdown = frames;			// set the countdown to the frame we were called, so that we can pause a bit 
+		this.currentstate = newState;		// before we fade away both succeed and fail sprites
+
+		if (tooEarly != undefined)			// if we fail, this won't be undefined
+			this.tooEarly = tooEarly;		// set this so we know if we're too early or too late
+	},
+
+	update: function()
+	{
+		switch (this.currentstate)
+		{
+			case this.states.Idle:
+				this.idle();
+				break;
+			case this.states.Succeed:
+				this.succeed();
+				break;
+			case this.states.Fail:
+				this.fail();
+				break;
+		}
+
+		this.x += this.vx;
+		this.y += this.vy;
+	},
+
+	idle: function()
+	{
+		this.n = 0;
+	},
+
+	// scale up bg and bubble, wait a little bit, then fade away both
+	succeed: function()
+	{
+		this.n = 1;
+		this.bubbleFrame = 0;
+		this.succeedBg.rotation += 2;
+
+		if (this.succeedBg.alpha == 1)							// start out here: check if bg alpha hasn't started fading yet
+		{
+			var incVal = this.bubble.scaleX <= 0.9 ? 0.1 : 0;	// make sure the scale doesn't go over 1
+
+			this.succeedBg.scaleX += incVal;
+			this.succeedBg.scaleY += incVal;
+
+			this.bubble.scaleX += incVal;
+			this.bubble.scaleY += incVal;
+		}
+
+		if (frames > this.countdown + 25)						// countdown is done
+		{
+			this.succeedBg.alpha -= (this.succeedBg.alpha > 0.1) ? 0.12 : 0;	// make sure alpha doesn't go below 0
+			this.bubble.alpha -= 0.065;
+		}
+
+		if (this.bubble.alpha <= 0)								// now we're done
+		{
+			this.reset();
+			this.currentstate = this.states.Idle;
+		}
+	},
+
+	// fade in fail bg, grow bubble, wait a bit, then fade both away
+	fail: function()
+	{
+		this.n = 2;
+		this.bubbleFrame = this.tooEarly ? 2 : 1;
+
+		if (this.bubble.alpha == 1)
+		{
+			this.failBg.alpha += (this.failBg.alpha < 0.9) ? 0.1 : 0;
+
+			var incVal = this.bubble.scaleX <= 0.9 ? 0.1 : 0;
+			this.bubble.scaleX += incVal;
+			this.bubble.scaleY += incVal;
+		}
+
+		if (frames > this.countdown + 25)
+		{
+			this.failBg.alpha -= (this.failBg.alpha > 0.12) ? 0.12 : 0;
+			this.bubble.alpha -= 0.065;
+		}
+
+		if (this.bubble.alpha <= 0)
+		{
+			this.reset();
+			this.currentstate = this.states.Idle;
+		}
+	},
+
+	// called after both succeed and fail, and whenever we set state. makes sure that
+	// we can call a state change while in the middle of a state
+	reset: function()
+	{
+		this.countdown = 0;
+		this.succeedBg.scaleX = 0;
+		this.succeedBg.scaleY = 0;
+		this.succeedBg.alpha = 1;
+		this.succeedBg.rotation = 0;
+		this.failBg.alpha = 0;
+		this.bubble.scaleX = 0;
+		this.bubble.scaleY = 0;
+		this.bubble.alpha = 1;
+	},
+
+	// split the drawing up into three functions, bg, sun, bubble
+	draw: function(ctx)
+	{
+		if (this.currentstate != this.states.Idle)
+			this.drawBackground();
+
+		this.drawSun();
+
+		if (this.currentstate != this.states.Idle)
+			this.drawBubble();
+	},
+
+	drawBackground: function()
+	{
+		if (this.currentstate == this.states.Fail)
+		{
+			ctx.save();
+
+			ctx.globalAlpha = this.failBg.alpha;
+
+			s_failBg.draw(ctx, 0, 0);
+			ctx.restore();
+		}
+		else if (this.currentstate == this.states.Succeed)
+		{
+			ctx.save();
+
+			ctx.globalAlpha = this.succeedBg.alpha;
+
+			ctx.translate(this.succeedBg.x+(s_succeedRays.width/2), this.succeedBg.y+(s_succeedRays.height/2));
+			ctx.rotate(this.succeedBg.rotation*Math.PI/180);
+			ctx.scale(this.succeedBg.scaleX, this.succeedBg.scaleY);
+			ctx.translate(-s_succeedRays.width/2, -s_succeedRays.height/2);
+
+			s_succeedRays.draw(ctx, 0, 0);
+			ctx.restore();
+		}
+	},
+
+	drawSun: function()
+	{
+		ctx.save();
+
+		ctx.translate(this.x+s_sun[0].width/2, this.y+s_sun[0].height/2);
+  		ctx.rotate(this.rotation*Math.PI/180);
+		ctx.translate(-s_sun[0].width/2, -s_sun[0].height/2);
+
+		ctx.globalAlpha = this.alpha;
+		ctx.scale(this.scaleX, this.scaleY);
+
+		s_sun[this.n].draw(ctx, 0, 0);
+		ctx.restore();
+	},
+
+	drawBubble: function()
+	{
+		ctx.save();
+
+		ctx.translate(this.bubble.x, this.bubble.y);
+		ctx.globalAlpha = this.bubble.alpha;
+		ctx.scale(this.bubble.scaleX, this.bubble.scaleY);
+
+		s_bubble[this.bubbleFrame].draw(ctx, 0, 0);
+		ctx.restore();
+	}
+},
+
+tapIcon = 
+{
+	x: 0,
+	y: 0,
+	alpha: 1,
+	scale: 0,
+	states:
+	{
+		Idle: 0, Showing: 1
+	},
+	currentstate: 0,
+	countdown: 0,
+
+	showTap: function(x, y)
+	{
+		this.x = x;
+		this.y = y;
+
+		this.currentstate = this.states.Showing;
+		this.countdown = frames;
+	},
+
+	update: function()
+	{
+		if (this.currentstate == this.states.Showing)
+			this.fadeInOut();
+	},
+
+	fadeInOut: function()
+	{
+		if (frames > this.countdown + 3)
+		{
+			this.alpha -= 0.15;
+
+			if (this.alpha <= 0)
+			{
+				this.alpha = 1;
+				this.scale = 0;
+				this.countdown = 0;
+				this.currentstate = this.states.Idle;
+			}
+		}
+		else if (this.scale < 0.9)
+		{
+			this.scale += 0.2;
+		}
+	},
+
+	draw: function(ctx)
+	{
+		if (tutNum <= 2)
+			return;
+
+		ctx.save();
+
+		ctx.globalAlpha = this.alpha;
+		ctx.translate(this.x+s_tapIcon.width/2, this.y+s_tapIcon.height/2);
+		ctx.scale(this.scale, this.scale);
+		ctx.translate(-s_tapIcon.width/2, -s_tapIcon.height/2);
+		s_tapIcon.draw(ctx, 0, 0);
+
+		ctx.restore();
+	}
+};
+
+function main()
+{
+	canvas = document.createElement("canvas");
+
+	width = window.innerWidth;
+	height = window.innerHeight;
+
+	var evt = "touchstart";
+	if (width >= 500)
+	{
+		width = 320;
+		height = 480;
+		canvas.style.border = "1px solid #000";
+		evt = "mousedown";
+	}
+	scaleFactor = width/320;
+
+	document.addEventListener(evt, onpress);
+	canvas.width = width;
+	canvas.height = height;
+	ctx = canvas.getContext("2d");
+	document.body.appendChild(canvas);
+
+	initSprites();
+	init();
+	loop();
+}
+
+// calling this will basically reset the game
+function init()
+{
+	currentstate = states.Splash;
+	frames = 0;
+	floorY = height-s_floor.height+20*scaleFactor;
+	score = 0;
+	drawNew = false;
+	defeated = 0;
+	health = 3;
+	enemy.health = 4;
+
+	player.n = 0;
+	enemy.n = 0;
+	player.rotation = 0;
+	enemy.rotation = 0;
+
+	player.setPos(78*scaleFactor, floorY-s_player[0].height);
+	enemy.setPos(225*scaleFactor, floorY-s_enemy[0].height);
+	sun.setPos(-22*scaleFactor, 39*scaleFactor);
+	bar.init(width/2-s_barFill.width/2, height-s_barFill.height-7*scaleFactor);
+	player.currentstate = player.states.Idle;
+
+	startButt.init((width/2)-s_startButt.width/2, (height/2)/1.17, s_startButt.width, s_startButt.height);
+	restartButt.init((width/2)-s_retryButt.width/2, 294*scaleFactor, s_retryButt.width, s_retryButt.height);
+}
+
+function onpress(evt)
+{
+	tapGlow.tap();
+
+	switch (currentstate)
+	{
+		case states.Splash:
+			checkButton(evt, startButt);
+		break;
+
+		case states.Score:
+			checkButton(evt, restartButt);
+		break;
+
+		case states.Game:
+			switch (player.currentstate)
+			{
+				case player.states.LowJump:
+					setTapStamp();
+					break;
+				case player.states.HighJump:
+					setTapStamp();
+					break;
+			}
+
+			if (enemy.currentstate == enemy.states.Attack)
+			{
+				setTapStamp();
+			}
+		break;
+	}
+
+	// don't worry about checking other stuff if paused
+	if (paused)
+	{
+		paused = false;									// unpause
+		player.tapStamp = frames;						// override tap stamp, ensuring that any tap on tut screen will count
+		window.requestAnimationFrame(loop, canvas);		// go to the next frame, enabling the loop to start back up again
+	}
+}
+
+function checkButton(evt, butt)
+{
+	var mx = evt.offsetX, my = evt.offsetY;
+
+	if (mx == null || my == null)
+	{
+		var mx = evt.touches[0].clientX;
+		var my = evt.touches[0].clientY;
+	}
+
+	if (mx > butt.x && mx < butt.x + butt.width &&
+		my > butt.y && my < butt.y + butt.height)
+	{
+		if (butt == startButt)
+		{
+			player.move(4*scaleFactor);
+			currentstate = states.Game;
+		}
+		else if (butt == restartButt)
+		{
+			init();
+		}
+	}
+}
+
+function setTapStamp()
+{
+	if (player.tapStamp == 0)
+	{
+		player.tapStamp = frames;
+	}
+}
+
+function getDead()
+{
+	currentstate = states.Score;
+
+	if (score > best)
+	{
+		best = score;
+		drawNew = true;
+	}
+}
+
+function loop()
+{
+	update();
+	draw();
+	
+	if (!paused)
+		window.requestAnimationFrame(loop, canvas);
+}
+
+function update()
+{
+	frames++;
+
+	player.update();
+	enemy.update();
+	sun.update();
+	bar.update();
+	tapGlow.update();
+	tapIcon.update();
+
+	cloudsPos = (cloudsPos-1) % width;		// scrolling background wizardry
+}
+
+function draw()
+{
+	var width2 = width/2;
+	var height2 = height/2;
+
+	// Background
+	// redraw background over contents of prior frame
+	ctx.fillStyle = "#c3fffc";
+	ctx.fillRect(0, 0, width, height);
+
+	s_clouds.draw(ctx, cloudsPos, 0);
+	sun.draw(ctx);
+	s_floor.draw(ctx, 0, height-s_floor.height);
+
+	// Characters
+	enemy.draw(ctx);
+	player.draw(ctx);
+
+	// UI
+	if (currentstate == states.Game)
+	{
+		tapIcon.draw(ctx);
+
+		s_barBacking.draw(ctx, width2-s_barBacking.width/2, height-s_barBacking.height-4*scaleFactor);
+		bar.draw(ctx);
+		s_barHealth.draw(ctx, 20*scaleFactor, height-s_barHealth.height-13*scaleFactor);
+
+		ctx.fillStyle = "#424242";
+		var fontSize = 40*scaleFactor+"";
+		ctx.font = "bold "+fontSize+"px Arial";
+		ctx.textAlign = "right";
+		ctx.fillText(score, 305*scaleFactor, 52*scaleFactor);
+
+		if (paused)
+		{
+			ctx.save();
+			ctx.scale(width/s_tutBacking.width, height/s_tutBacking.height);
+			s_tutBacking.draw(ctx, 0, 0);
+			ctx.restore();
+
+			s_tutText[tutNum-1].draw(ctx, width2-s_tutText[tutNum-1].width/2, height2-s_tutText[tutNum-1].height/2);
+		}
+	}
+	if (currentstate == states.Splash)
+	{
+		s_title.draw(ctx, width2-s_title.width/2, height2/2);
+		startButt.draw(ctx);
+		s_name.draw(ctx, width-s_name.width, height-s_name.height);
+	}
+	if (currentstate == states.Score)
+	{
+		s_scoreBacking.draw(ctx, -(width2-s_scoreBacking.width/2), 68*scaleFactor);
+
+		ctx.fillStyle = "#fff";
+		var fontSize = 30*scaleFactor+"";
+		ctx.font = fontSize+"px Arial";
+		ctx.textAlign = "right";
+		ctx.fillText(score, 275*scaleFactor, 128*scaleFactor);
+		ctx.fillText(best, 275*scaleFactor, 200*scaleFactor);
+
+		if (drawNew)
+			s_new.draw(ctx, width2+4*scaleFactor, 205*scaleFactor);
+
+		ctx.textAlign = "left";
+		ctx.fillText(defeated, 38*scaleFactor, 230*scaleFactor);
+
+		if (defeated > 0)
+		{
+			for (var i = 0; i < defeated; i++)
+			{
+				ctx.save();
+
+				var deadX = (76*scaleFactor)+s_enemy[0].width/2;
+				var deadY = (193-(i*17))*scaleFactor+s_enemy[0].height/2;
+
+				ctx.translate(deadX, deadY);
+				ctx.rotate((i % 2 == 0 ? -90 : 90) *Math.PI/180);
+				ctx.scale(i % 2 == 0 ? 1 : -1, 1);
+				ctx.translate(-s_enemy[0].width/2, -s_enemy[0].height/2);
+
+				s_enemy[7].draw(ctx, 0, 0);
+				ctx.restore();
+			}
+		}
+
+		restartButt.draw(ctx);
+	}
+
+	tapGlow.draw(ctx);
+}
+
+main();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+
+	<link rel="stylesheet" type="text/css" href="portfolioStyle.css">
+	<link href="lightbox/dist/css/lightbox.css" rel="stylesheet">
+	<link href='https://fonts.googleapis.com/css?family=Dosis:200,300,400,500,600' rel='stylesheet' type='text/css'>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+	
+	<script>
+		
+		$(function() {
+			$('a[href*="#"]:not([href="#"])').click(function() {
+				if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {
+					var target = $(this.hash);
+					target = target.length ? target : $('[name=' + this.hash.slice(1) +']');
+					if (target.length) {
+						$('html, body').animate({scrollTop: target.offset().top}, 500);
+						return false;
+					}
+				}
+			});
+		});
+
+	</script>
+	
+	<title>Home - Andrew Colannino's Portfolio</title>
+</head>
+
+<body>
+
+	<div id = "wrapper">
+		
+		<div id = "header">
+		
+			<div id = "name_text">
+				<text style = "font-weight: 500;" class = "andBlue">Andrew Colannino's</text>
+				<text style = "font-weight: 300;">Portfolio</text>
+			</div>
+			
+		</div>
+		
+		<div id = "content">
+		
+			<div id = "projects">
+			
+				<p>Hello! I'm a software engineer and game developer. This is my portfolio. Welcome!<br>
+				
+				<div id = "tab_box">
+				<div class="section group">
+				
+					<div class="col span_1_of_4">
+						<!-- spacing -->
+					</div>
+					
+					<div class="col span_2_of_4">
+						<a style = "color:inherit; text-decoration: none;" href="#contact">
+							<div id = "button_misc" class = "button">
+								Contact me
+							</div>
+						</a>
+					</div>
+					
+					<div class="col span_1_of_4">
+						<!-- spacing -->
+					</div>
+					
+				</div>
+			
+			</div>
+				
+				<br><br>
+
+				<div class="section group game_container">
+				
+					<div class="col span_1_of_4">
+					
+						<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=oM9DCthRJl4" target = "_blank">
+							<div id = "button_web" class = "button play_button">Watch example video</div>
+						</a>
+
+						<a style = "color:inherit; text-decoration: none;" href="http://andgames.co/games/claytonsquest/" target = "_blank">
+							<div id = "button_mobile" class = "button play_button">Download for PC</div>
+						</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<div class = "game_title">Clayton's Quest</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>
+							<b>Served as Team Lead with a group of 5 students.</b>
+							<br>
+							Clayton's Quest is an open-ended exploration platformer featuring a complex player controller and multiple 
+							player transformations.
+							<br></br>
+							<b>Tools:</b> C# with Unity 5
+							<br><b>Duties:</b> Team Lead, programming the player controls and transformations.</p>
+							
+						</div>
+						
+						<a href="images/claytonScreen1.jpg" data-lightbox="clayton" data-title="Clayton's Quest">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/claytonScreen1.jpg"/></a>
+						
+						<a href="images/claytonScreen2.png" data-lightbox="clayton" data-title="Clayton's Quest">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/claytonScreen2.png"/></a>
+					</div>
+					
+				</div>
+				
+				<div class="section group game_container">
+					<div class="col span_1_of_4">
+
+					<a style = "color:inherit; text-decoration: none;" href="https://github.com/akc8012/TempleCurse-DimensionPuzzle" target = "_blank">
+						<div id = "button_pc" class = "button play_button">View source on GitHub</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=5qWeHbM5K80" target = "_blank">
+						<div id = "button_web" class = "button play_button">Watch example video</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://drive.google.com/file/d/0B83bFjj-jqUiNDZCWlYzOGdXSU0/view?usp=sharing" target = "_blank">
+						<div id = "button_mobile" class = "button play_button">Download for PC</div>
+					</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+							
+							<div class = "game_title">Temple Curse: Dimension Puzzle</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>
+							<b>Selected to be presented at the PAX East 2016 and 2017 gaming expo.</b>
+							<br>
+							Created for my Associate degree final project, 
+							Temple Curse: Dimension Puzzle is a game featuring many temples that 
+							completely change depending on which way you look at them. I recommend watching the 
+							example video to get a better idea.
+							<br></br>
+							The player can spin around the temple cubes as they move 
+							and jump around, allowing for some tricky, multidimensional 
+							platforming puzzles.
+							<br></br>
+							<b>Tools:</b> C# with Unity 5
+							<br><b>Duties:</b> Served as the sole programmer, creating the player controls, 
+							and created the multidimensional cube system.</p>
+							
+						</div>
+						
+						<a href="images/templeScreen1.png" data-lightbox="temple" data-title="Temple Curse: Dimension Puzzle">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/templeScreen1.png"/></a>
+
+						<a href="images/templeScreen2.png" data-lightbox="temple" data-title="Temple Curse: Dimension Puzzle">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/templeScreen2.png"/></a>
+						
+					</div>
+					
+				</div>
+				
+				<div class="section group game_container">
+					<div class="col span_1_of_4">
+					
+					<a style = "color:inherit; text-decoration: none;" href="https://github.com/akc8012/ggj2017" target = "_blank">
+						<div id = "button_pc" class = "button play_button">View source on GitHub</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=8RD9T1yY2Qo" target = "_blank">
+						<div id = "button_web" class = "button play_button">Watch example video</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://drive.google.com/file/d/0B83bFjj-jqUiM3dOQmRDVFJia00/view?usp=sharing" target = "_blank">
+						<div id = "button_mobile" class = "button play_button">Download for PC and Android</div>
+					</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<div class = "game_title">Happy Canada</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>Happy Canada is PC and smartphone action-clicking game made for the 48-hour Global Game Jam. 
+							Rapidly click on the unhappy citizens of Canada to make them happy! Worked with a team of 4 programmers. 
+							<br></br>
+							<b>Tools:</b> C# with Unity 5
+							<br><b>Duties:</b> Wrote a cross-platform input system to allow the other programmers to 
+							easily work with both mouse input and touchscreen, created the in-game items/powerups.</p>
+							
+						</div>
+						
+						<a href="images/happyCanadaScreen1.png" data-lightbox="happy" data-title="Happy Canada">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/happyCanadaScreen1.png"/></a>
+						
+						<a href="images/happyCanadaScreen2.png" data-lightbox="happy" data-title="Happy Canada">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/happyCanadaScreen2.png"/></a>
+					</div>
+					
+				</div>
+
+				<div class="section group game_container">
+				
+					<div class="col span_1_of_4">
+					
+						<a style = "color:inherit; text-decoration: none;" href="https://github.com/akc8012/DiceGame" target = "_blank">
+							<div id = "button_pc" class = "button play_button">View source on GitHub</div>
+						</a>
+
+						<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=nAL41gRFoPw" target = "_blank">
+							<div id = "button_web" class = "button play_button">Watch example video</div>
+						</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<div class = "game_title">The Parade of Trades - Lean Construction Game</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>Created a 5-player online game for students in construction classes at the college, where they learn
+							the basic concepts of Lean Construction through gameplay.
+							<br></br>
+							<b>Tools:</b> C# with Unity 5, Eclipse with Java, SmartFoxServer 2X
+							<br><b>Duties:</b> Worked with a designer, and handled the programming duties such as game logic and networking code.</p>
+							
+						</div>
+						
+						<a href="images/paradeScreen1.png" data-lightbox="parade" data-title="The Parade of Trades">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/paradeScreen1.png"/></a>
+						
+						<a href="images/paradeScreen2.png" data-lightbox="parade" data-title="The Parade of Trades">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/paradeScreen2.png"/></a>
+					</div>
+					
+				</div>
+
+				<div class="section group game_container">
+					<div class="col span_1_of_4">
+					
+					<a style = "color:inherit; text-decoration: none;" href="https://github.com/akc8012/Serious" target = "_blank">
+						<div id = "button_pc" class = "button play_button">View source on GitHub</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=NSr0oLR93JY" target = "_blank">
+						<div id = "button_web" class = "button play_button">Watch example video</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://drive.google.com/file/d/0B83bFjj-jqUiYXVOOS1FeHByUE0/view?usp=sharing" target = "_blank">
+						<div id = "button_mobile" class = "button play_button">Download for PC</div>
+					</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<div class = "game_title">Bradley Hospital Simulation Training</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>This is a room-searching simulation program made for the staff of Bradley Hospital, 
+							a neuropsychiatric hospital for children. It is meant to train the staff in their duty to 
+							search and remove contraband and harmful items from children's rooms. The game was created 
+							for my Serious Games class, and was demonstrated to hospital staff, where it earned excellent reviews.
+							<br></br>
+							<b>Tools:</b> C# with Unity 5
+							<br><b>Duties:</b> Created the item-spawning system, rotatable objects, intractable environment, and item counting/scoring algorithm.</p>
+							
+						</div>
+						
+						<a href="images/bradleyScreen1.png" data-lightbox="bradley" data-title="Bradley Hospital">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/bradleyScreen1.png"/></a>
+						
+						<a href="images/bradleyScreen2.png" data-lightbox="bradley" data-title="Bradley Hospital">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/bradleyScreen2.png"/></a>
+					</div>
+					
+				</div>
+
+				<div class="section group game_container">
+					<div class="col span_1_of_4">
+					
+					<a style = "color:inherit; text-decoration: none;" href="https://github.com/akc8012/tetris" target = "_blank">
+						<div id = "button_pc" class = "button play_button">View source on GitHub</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://www.youtube.com/watch?v=f4iyFPjygbA" target = "_blank">
+						<div id = "button_web" class = "button play_button">Watch example video</div>
+					</a>
+
+					<a style = "color:inherit; text-decoration: none;" href="https://drive.google.com/file/d/0B83bFjj-jqUiUWhLNHBIZ2t4Mmc/view?usp=sharing" target = "_blank">
+						<div id = "button_mobile" class = "button play_button">Download for PC</div>
+					</a>
+						
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<div class = "game_title">AI Tetris</div>
+							<div class = "title_bar andBlueBg"></div>
+							
+							<p>Created as the final project for my AI class, AI Tetris is a fully-playable Tetris game, as well as a Tetris-playing algorithm.  
+							I made a genetic algorithm to place each tetromino to clear rows as quickly as possible. Watch the example 
+							video to see it in-action.
+							<br></br>
+							<b>Tools:</b> C++, SDL2 library, Visual Studio 2015
+							<br><b>Duties:</b> Creating a fully-playable Tetris game, writing the genetic algorithm to position and rotate tetrominos.</p>
+							
+						</div>
+						
+						<a href="images/tetrisScreen1.png" data-lightbox="tetris" data-title="AI Tetris">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/tetrisScreen1.png"/></a>
+						
+						<a href="images/tetrisScreen2.png" data-lightbox="tetris" data-title="AI Tetris">
+							<img class = "thumb_img" class="col span_1_of_4" src = "images/tetrisScreen2.png"/></a>
+					</div>
+					
+				</div>
+
+				<div id = "contact" class = "skill_title andGray">Contact me</div>
+
+				<div class="section group game_container" style = "margin-bottom: 0">
+					
+					<div class="col span_1_of_4">
+						<!-- This div is needed for spacing -->
+					</div>
+					
+					<div style = "margin-top: 0" class="col span_3_of_4">
+						
+						<div>
+						
+							<!-- Do not change the code! -->
+							<a id="foxyform_embed_link_875845" href="http://www.foxyform.com/">foxyform</a>
+							<script type="text/javascript">
+							(function(d, t){
+							   var g = d.createElement(t),
+							       s = d.getElementsByTagName(t)[0];
+							   g.src = "http://www.foxyform.com/js.php?id=875845&sec_hash=47d4dc2c346&width=350px";
+							   s.parentNode.insertBefore(g, s);
+							}(document, "script"));
+							</script>
+							<!-- Do not change the code! -->
+							
+						</div>
+					</div>
+				</div>
+
+				<p style = "text-align: center">Copyright © 2017 Andrew Colannino</p>
+			</div>
+		
+		</div>
+	
+	</div>
+
+	<script src="lightbox/dist/js/lightbox.js"></script>
+	<script>
+		lightbox.option
+		({
+			'resizeDuration': 0,
+			'fadeDuration': 200,
+			'disableScrolling': true,
+			'alwaysShowNavOnTouchDevices': true
+		})
+	</script>
+
+</body>
+</html>
